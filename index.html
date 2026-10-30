@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مولد بطاقات جمعية حنطة</title>
-    <!-- مكتبة توليد الـ QR Code -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- تم حذف مكتبة qrcodejs واستبدالها بـ API موثوق -->
     <!-- مكتبة تحويل البطاقة إلى صورة عالية الدقة -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- خط كايرو -->
@@ -196,7 +195,7 @@
             width: 100% !important;
             height: 100% !important;
             display: block;
-            image-rendering: pixelated;
+            object-fit: contain;
         }
 
         /* الجانب الأيمن (الأخضر) */
@@ -424,6 +423,7 @@
                 <img src="logo.png" alt="شعار جمعية حنطة">
             </div>
             <div class="assoc-name">جمعية حنطة<br>الخيرية التنموية</div>
+            <!-- سيتم وضع صورة الكيو ار هنا تلقائياً -->
             <div id="qrcode"></div>
         </div>
 
@@ -503,30 +503,26 @@
             stamp.style.opacity = opacity;
         }
 
-        // 3. توليد QR Code (مع معالجة الأخطاء)
+        // 3. توليد QR Code باستخدام API (أكثر موثوقية)
         function generateQR(text) {
             const qrContainer = document.getElementById("qrcode");
-            qrContainer.innerHTML = ""; 
+            // تفريغ الحاوية
+            qrContainer.innerHTML = "";
             
-            // التحقق من وجود المكتبة (لمنع توقف الكود إذا كان الإنترنت مقطوعاً)
-            if (typeof QRCode === 'undefined') {
-                qrContainer.innerHTML = "<span style='font-size:10px; color:red; text-align:center;'>مكتبة الكيو ار لم تحمل</span>";
-                console.error("مكتبة QRCode غير موجودة. تأكد من اتصالك بالإنترنت.");
-                return;
-            }
-
-            try {
-                new QRCode(qrContainer, {
-                    text: text,
-                    width: 500,   
-                    height: 500,  
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
-                });
-            } catch (error) {
-                console.error("حدث خطأ أثناء رسم الكيو ار كود:", error);
-            }
+            // ترميز النص ليوضع في رابط الـ API
+            const encodedText = encodeURIComponent(text);
+            
+            // إنشاء صورة جديدة
+            const img = document.createElement("img");
+            
+            // رابط API لتوليد الكيو ار (حجم 500x500 دقة عالية)
+            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodedText}`;
+            
+            // خاصية هامة جداً لتعمل مع زر التحميل (html2canvas)
+            img.crossOrigin = "anonymous";
+            
+            // وضع الصورة في مكانها
+            qrContainer.appendChild(img);
         }
 
         // 4. رفع الصورة
@@ -622,12 +618,12 @@
                     
                 }).catch(err => {
                     console.error("حدث خطأ أثناء التحميل:", err);
-                    alert("فشل التحميل! يرجى تجربة رفع الصفحة على GitHub أو استخدام Live Server لأن المتصفح يمنع التحميل المحلي للصور.");
+                    alert("حدث خطأ أثناء محاولة تحميل الصورة. يرجى المحاولة مرة أخرى.");
                 }).finally(() => {
                     btn.innerText = "تحميل البطاقة (دقة عالية)";
                     btn.disabled = false;
                 });
-            }, 300);
+            }, 500); // مهلة نصف ثانية لضمان تحميل صورة الكيو ار من الإنترنت قبل التقاط الصورة
         });
 
         window.onload = function() {
