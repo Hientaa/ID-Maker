@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مولد بطاقات جمعية حنطة</title>
+    <!-- مكتبة توليد الـ QR Code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- مكتبة تحويل البطاقة إلى صورة عالية الدقة -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- خط كايرو -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        /* تنسيق لوحة التحكم (الفورم) */
+        .controls {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 350px;
+        }
+
+        .controls h2 {
+            margin-top: 0;
+            color: #1b5e3a;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .form-group input[type="text"], .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: white;
+        }
+
+        .form-group input[type="file"] {
+            padding: 8px;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+
+        /* تنسيق أشرطة التمرير (Range Sliders) */
+        .slider-group {
+            margin-bottom: 12px;
+        }
+        .slider-group label {
+            font-size: 12px;
+            color: #555;
+            display: inline-block;
+            width: 80px;
+        }
+        .slider-group input[type="range"] {
+            width: calc(100% - 85px);
+            vertical-align: middle;
+            cursor: pointer;
+        }
+
+        /* زر التحميل */
+        .btn-download {
+            width: 100%;
+            padding: 12px;
+            background-color: #1b5e3a;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn-download:hover {
+            background-color: #14452b;
+        }
+
+        .btn-download:disabled {
+            background-color: #888;
+            cursor: not-allowed;
+        }
+
+        /* =========================================
+           تنسيق البطاقة الأساسي (نسبة 8x10)
+           ========================================= */
+        .card-container {
+            width: 400px;
+            height: 500px;
+            display: flex;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            position: relative;
+            background-color: #fff;
+        }
+
+        /* طبقة العلامة المائية */
+        .watermark-layer {
+            position: absolute;
+            top: -50%; 
+            left: -50%; 
+            width: 200%; 
+            height: 200%;
+            background-image: url('logo.png');
+            background-repeat: repeat;
+            background-size: 50px 50px;
+            opacity: 0.05;
+            transform: rotate(30deg);
+            pointer-events: none; 
+            z-index: 1; 
+        }
+
+        /* الجانب الأيسر (الأبيض) */
+        .card-left {
+            width: 33%;
+            background-color: #f8f9fa; 
+            border-left: 3px solid #d4af37;
+            border-right: 2px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px 5px;
+            position: relative;
+            z-index: 2; 
+        }
+
+        /* الشعار الأساسي */
+        .logo-container {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .assoc-name {
+            color: #1b5e3a;
+            font-weight: 900;
+            text-align: center;
+            font-size: 13px;
+            line-height: 1.4;
+            margin-bottom: auto;
+        }
+
+        /* QR Code */
+        #qrcode {
+            width: 100px;
+            height: 100px; 
+            margin-top: auto;
+            background: white;
+            padding: 3px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #qrcode img {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+            image-rendering: pixelated;
+        }
+
+        /* الجانب الأيمن (الأخضر) */
+        .card-right {
+            width: 67%;
+            background-color: #1b5e3a; 
+            position: relative;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #d4af37;
+            z-index: 2; 
+        }
+
+        /* إطار الصورة */
+        .photo-frame {
+            width: 150px;
+            height: 150px;
+            background-color: white;
+            border-radius: 50%;
+            border: 3px solid #d4af37;
+            margin-top: 5px;
+            position: relative;
+            z-index: 3; 
+            overflow: hidden;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .photo-frame:active {
+            cursor: grabbing;
+        }
+
+        #uploadedPhoto {
+            display: none;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: center;
+            pointer-events: none;
+        }
+
+        .photo-placeholder-text {
+            color: #ccc;
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        .photo-frame::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 25px;
+            height: 25px;
+            background-color: white;
+            border: 3px solid #d4af37;
+            border-radius: 50%;
+            clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+            z-index: -1;
+        }
+
+        /* بيانات البطاقة */
+        .card-data {
+            width: 100%;
+            margin-top: 20px;
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .data-row {
+            text-align: center;
+        }
+
+        .data-name-en {
+            font-size: 20px;
+            font-weight: 900;
+            color: #fff;
+            margin-bottom: 2px;
+            line-height: 1.2;
+        }
+
+        .data-name-ar {
+            font-size: 18px;
+            font-weight: 900;
+            color: #d4af37;
+        }
+
+        .data-type {
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 10px;
+        }
+
+        .data-type-ar {
+            font-size: 13px;
+            color: #d4af37;
+        }
+
+        .bottom-data {
+            width: 100%;
+            margin-top: auto;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            padding-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 11px;
+            color: #fff;
+            z-index: 3;
+        }
+        
+        .bottom-data span {
+            color: #d4af37;
+            font-weight: bold;
+        }
+
+        /* =========================================
+           تنسيق ختم الجمعية (stamp) 
+           ========================================= */
+        .stamp-image {
+            position: absolute;
+            width: 140px; 
+            height: 140px;
+            left: 40px;   
+            top: 230px;   
+            z-index: 10;
+            transform: rotate(-15deg);
+            opacity: 0.8;
+            pointer-events: none;
+            transition: all 0.1s ease-out;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- لوحة الإدخال -->
+    <div class="controls">
+        <h2>بيانات المنتسب</h2>
+        
+        <div class="form-group">
+            <label>رفع الصورة الشخصية</label>
+            <input type="file" id="imageUpload" accept="image/*">
+            <small style="color:#666; font-size:11px; display:block; margin-top:5px;">* يمكنك سحب الصورة داخل الدائرة لتوسيطها.</small>
+        </div>
+
+        <div class="form-group">
+            <label>الاسم بالإنجليزية</label>
+            <input type="text" id="inputNameEn" placeholder="أضف الاسم هنا (انجليزي)" oninput="updateCard()">
+        </div>
+        <div class="form-group">
+            <label>الاسم بالعربية</label>
+            <input type="text" id="inputNameAr" placeholder="أضف الاسم هنا (عربي)" oninput="updateCard()">
+        </div>
+        
+        <div class="form-group">
+            <label>نوع العضوية</label>
+            <select id="inputType" onchange="updateCard()">
+                <option value="associate">عضو منتسب (Associate Member)</option>
+                <option value="founding">عضو مؤسس (Founding Member)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>تاريخ الانضمام</label>
+            <input type="text" id="inputDate" placeholder="22 / 2/ 2026" oninput="updateCard()">
+        </div>
+        <div class="form-group">
+            <label>رقم الجوال</label>
+            <input type="text" id="inputMobile" placeholder="أضف رقم الهاتف" oninput="updateCard()">
+        </div>
+        <div class="form-group">
+            <label>الرقم التعريفي</label>
+            <input type="text" id="inputId" placeholder="أضف رمز العضو" oninput="updateCard()">
+        </div>
+
+        <!-- لوحة التحكم بالختم -->
+        <div style="border-top: 2px dashed #ccc; margin-top: 20px; padding-top: 15px;">
+            <h3 style="text-align: center; color: #1b5e3a; font-size: 16px; margin-top: 0;">التحكم بالختم (Stamp)</h3>
+            
+            <div class="slider-group">
+                <label>الحجم:</label>
+                <input type="range" id="stampSize" min="50" max="250" value="140" oninput="updateStampControl()">
+            </div>
+            <div class="slider-group">
+                <label>يمين / يسار:</label>
+                <input type="range" id="stampX" min="-50" max="250" value="40" oninput="updateStampControl()">
+            </div>
+            <div class="slider-group">
+                <label>أعلى / أسفل:</label>
+                <input type="range" id="stampY" min="-50" max="400" value="230" oninput="updateStampControl()">
+            </div>
+            <div class="slider-group">
+                <label>الميلان:</label>
+                <input type="range" id="stampRotate" min="-180" max="180" value="-15" oninput="updateStampControl()">
+            </div>
+            <div class="slider-group">
+                <label>الشفافية:</label>
+                <input type="range" id="stampOpacity" min="0" max="1" step="0.05" value="0.8" oninput="updateStampControl()">
+            </div>
+        </div>
+
+        <!-- زر تحميل البطاقة -->
+        <button id="downloadBtn" class="btn-download">تحميل البطاقة (دقة عالية)</button>
+    </div>
+
+    <!-- البطاقة -->
+    <div class="card-container" id="idCard">
+        
+        <div class="watermark-layer"></div>
+
+        <div class="card-left">
+            <div class="logo-container">
+                <img src="logo.png" alt="شعار جمعية حنطة">
+            </div>
+            <div class="assoc-name">جمعية حنطة<br>الخيرية التنموية</div>
+            <div id="qrcode"></div>
+        </div>
+
+        <div class="card-right">
+            <div class="photo-frame" id="photoContainer">
+                <span class="photo-placeholder-text" id="photoPlaceholderText">صورة</span>
+                <img id="uploadedPhoto" src="" alt="صورة المنتسب">
+            </div>
+
+            <div class="card-data">
+                <div class="data-row">
+                    <div class="data-name-en" id="cardNameEn">Tarek Hasan Ibrahem</div>
+                    <div class="data-name-ar" id="cardNameAr">طارق حسن ابراهيم</div>
+                </div>
+                <div class="data-row">
+                    <div class="data-type" id="cardTypeEn">Associate Member</div>
+                    <div class="data-type-ar" id="cardTypeAr">عضو منتسب</div>
+                </div>
+            </div>
+
+            <div class="bottom-data">
+                <div>JOIN DATE : <span id="cardDate">22 / 2/ 2026</span></div>
+                <div>MOB : <span id="cardMobile">0987 002520</span></div>
+                <div>ID NO : <span id="cardId">A001</span></div>
+            </div>
+        </div>
+
+        <!-- صورة الختم -->
+        <img src="stamp.png" alt="ختم الجمعية" class="stamp-image" id="stampImg">
+    </div>
+
+    <script>
+        // 1. تحديث بيانات النصوص
+        function updateCard() {
+            const nameEn = document.getElementById('inputNameEn').value || 'Tarek Hasan Ibrahem';
+            const nameAr = document.getElementById('inputNameAr').value || 'طارق حسن ابراهيم';
+            const typeSelect = document.getElementById('inputType').value;
+            const date = document.getElementById('inputDate').value || '22 / 2/ 2026';
+            const mobile = document.getElementById('inputMobile').value || '0987 002520';
+            const idNo = document.getElementById('inputId').value || 'A001';
+
+            let typeEn, typeAr;
+            if (typeSelect === 'founding') {
+                typeEn = 'Founding Member';
+                typeAr = 'عضو مؤسس';
+            } else {
+                typeEn = 'Associate Member';
+                typeAr = 'عضو منتسب';
+            }
+
+            document.getElementById('cardNameEn').innerText = nameEn;
+            document.getElementById('cardNameAr').innerText = nameAr;
+            document.getElementById('cardTypeEn').innerText = typeEn;
+            document.getElementById('cardTypeAr').innerText = typeAr;
+            document.getElementById('cardDate').innerText = date;
+            document.getElementById('cardMobile').innerText = mobile;
+            document.getElementById('cardId').innerText = idNo;
+
+            const qrData = `Name: ${nameEn}\nID: ${idNo}\nType: ${typeEn}`;
+            generateQR(qrData);
+        }
+
+        // 2. التحكم بالختم
+        function updateStampControl() {
+            const stamp = document.getElementById('stampImg');
+            const size = document.getElementById('stampSize').value;
+            const x = document.getElementById('stampX').value;
+            const y = document.getElementById('stampY').value;
+            const rotate = document.getElementById('stampRotate').value;
+            const opacity = document.getElementById('stampOpacity').value;
+
+            stamp.style.width = size + 'px';
+            stamp.style.height = size + 'px';
+            stamp.style.left = x + 'px';
+            stamp.style.top = y + 'px';
+            stamp.style.transform = `rotate(${rotate}deg)`;
+            stamp.style.opacity = opacity;
+        }
+
+        // 3. توليد QR Code (مع معالجة الأخطاء)
+        function generateQR(text) {
+            const qrContainer = document.getElementById("qrcode");
+            qrContainer.innerHTML = ""; 
+            
+            // التحقق من وجود المكتبة (لمنع توقف الكود إذا كان الإنترنت مقطوعاً)
+            if (typeof QRCode === 'undefined') {
+                qrContainer.innerHTML = "<span style='font-size:10px; color:red; text-align:center;'>مكتبة الكيو ار لم تحمل</span>";
+                console.error("مكتبة QRCode غير موجودة. تأكد من اتصالك بالإنترنت.");
+                return;
+            }
+
+            try {
+                new QRCode(qrContainer, {
+                    text: text,
+                    width: 500,   
+                    height: 500,  
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+            } catch (error) {
+                console.error("حدث خطأ أثناء رسم الكيو ار كود:", error);
+            }
+        }
+
+        // 4. رفع الصورة
+        const imageUpload = document.getElementById('imageUpload');
+        const uploadedPhoto = document.getElementById('uploadedPhoto');
+        const photoPlaceholderText = document.getElementById('photoPlaceholderText');
+
+        imageUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedPhoto.src = event.target.result;
+                    uploadedPhoto.style.display = 'block';
+                    photoPlaceholderText.style.display = 'none';
+                    
+                    currentX = 0;
+                    currentY = 0;
+                    uploadedPhoto.style.transform = `translate(0px, 0px) scale(1.1)`;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 5. سحب الصورة
+        const photoContainer = document.getElementById('photoContainer');
+        let isDragging = false;
+        let startX, startY;
+        let currentX = 0, currentY = 0;
+
+        photoContainer.addEventListener('mousedown', (e) => {
+            if(uploadedPhoto.style.display === 'none') return;
+            isDragging = true;
+            startX = e.clientX - currentX;
+            startY = e.clientY - currentY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            currentX = e.clientX - startX;
+            currentY = e.clientY - startY;
+            uploadedPhoto.style.transform = `translate(${currentX}px, ${currentY}px) scale(1.2)`;
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        photoContainer.addEventListener('touchstart', (e) => {
+            if(uploadedPhoto.style.display === 'none') return;
+            isDragging = true;
+            const touch = e.touches[0];
+            startX = touch.clientX - currentX;
+            startY = touch.clientY - currentY;
+        }, {passive: false});
+
+        window.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            currentX = touch.clientX - startX;
+            currentY = touch.clientY - startY;
+            uploadedPhoto.style.transform = `translate(${currentX}px, ${currentY}px) scale(1.2)`;
+        }, {passive: false});
+
+        window.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // 6. تحميل البطاقة
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            const card = document.getElementById('idCard');
+            const btn = this;
+            
+            btn.innerText = "جاري التحميل...";
+            btn.disabled = true;
+
+            setTimeout(() => {
+                html2canvas(card, {
+                    scale: 4, 
+                    useCORS: true, 
+                    allowTaint: true, 
+                    backgroundColor: null 
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'بطاقة_منتسب_جمعية_حنطة.png';
+                    link.href = canvas.toDataURL('image/png');
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                }).catch(err => {
+                    console.error("حدث خطأ أثناء التحميل:", err);
+                    alert("فشل التحميل! يرجى تجربة رفع الصفحة على GitHub أو استخدام Live Server لأن المتصفح يمنع التحميل المحلي للصور.");
+                }).finally(() => {
+                    btn.innerText = "تحميل البطاقة (دقة عالية)";
+                    btn.disabled = false;
+                });
+            }, 300);
+        });
+
+        window.onload = function() {
+            updateCard();
+            updateStampControl();
+        };
+    </script>
+</body>
+</html>
